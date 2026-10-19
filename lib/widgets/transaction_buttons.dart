@@ -18,7 +18,7 @@ class TransactionButtons extends StatelessWidget {
             child: ElevatedButton.icon(
               onPressed: onAdd,
               icon: const Icon(Icons.add),
-              label: const Text('Add'),
+              label: const Text('Income'),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
             ),
           ),
@@ -27,7 +27,7 @@ class TransactionButtons extends StatelessWidget {
             child: ElevatedButton.icon(
               onPressed: onDeduct,
               icon: const Icon(Icons.remove),
-              label: const Text('Deduct'),
+              label: const Text('Expenditure'),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             ),
           ),

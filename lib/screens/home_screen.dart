@@ -1,7 +1,6 @@
 // lib/screens/home_screen.dart
 //
-// Balance + Add/Deduct buttons + transaction history list.
-// Rebuilds on LedgerState changes via AnimatedBuilder.
+// Balance + Add/Deduct buttons + tabbed transaction lists + reset action.
 
 import 'package:flutter/material.dart';
 
@@ -20,64 +19,107 @@ class HomeScreen extends StatelessWidget {
       BuildContext context,
       TransactionType type,
       ) async {
-    final result = await showDialog<double>(
+    final result = await showDialog<_AmountResult>(
       context: context,
       builder: (_) => _AmountDialog(type: type),
     );
     if (result != null) {
-      ledger.addTransaction(type, result);
+      ledger.addTransaction(type, result.amount, source: result.source);
+    }
+  }
+
+  Future<void> _confirmReset(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Reset everything?'),
+          content: const Text(
+            'This will delete all transactions and set the balance to zero. '
+                'This cannot be undone.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text(
+                'Reset',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+    if (ok == true) {
+      ledger.clearAll();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Ledger')),
+      appBar: AppBar(
+        title: const Text('Ledger'),
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            tooltip: 'Reset',
+            icon: const Icon(Icons.refresh),
+            onPressed: () => _confirmReset(context),
+          ),
+        ],
+      ),
       body: AnimatedBuilder(
         animation: ledger,
         builder: (context, _) {
-          // Newest first.
-          final items = ledger.transactions.reversed.toList(growable: false);
+          // Derive three filtered views of the same list — newest first.
+          final all = ledger.transactions.reversed.toList(growable: false);
+          final income =
+          all.where((t) => t.isIncome).toList(growable: false);
+          final expense =
+          all.where((t) => !t.isIncome).toList(growable: false);
 
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: BalanceCard(balance: ledger.balance),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TransactionButtons(
-                  onAdd: () =>
-                      _promptAmount(context, TransactionType.income),
-                  onDeduct: () =>
-                      _promptAmount(context, TransactionType.expense),
+          return DefaultTabController(
+            length: 3,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: BalanceCard(balance: ledger.balance),
                 ),
-              ),
-              const SizedBox(height: 8),
-              const Divider(height: 1),
-              Expanded(
-                child: items.isEmpty
-                    ? const Center(
-                  child: Text(
-                    'No transactions yet.\nTap Add or Deduct to begin.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: TransactionButtons(
+                    onAdd: () =>
+                        _promptAmount(context, TransactionType.income),
+                    onDeduct: () =>
+                        _promptAmount(context, TransactionType.expense),
                   ),
-                )
-                    : ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  itemCount: items.length,
-                  itemBuilder: (context, i) {
-                    final t = items[i];
-                    return TransactionTile(
-                      key: ValueKey(t.id),
-                      transaction: t,
-                    );
-                  },
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+                const TabBar(
+                  tabs: [
+                    Tab(text: 'All'),
+                    Tab(text: 'Income'),
+                    Tab(text: 'Expenditures'),
+                  ],
+                ),
+                Expanded(
+                  child: TabBarView(
+                    children: [
+                      _TransactionList(items: all, emptyText: 'No transactions yet.\nTap Income or Expenditure to begin.'),
+                      _TransactionList(items: income, emptyText: 'No additions yet.'),
+                      _TransactionList(items: expense, emptyText: 'No deductions yet.'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           );
         },
       ),
@@ -85,9 +127,45 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-/// Owns its own TextEditingController so the controller's lifetime matches
-/// the dialog's lifetime. Disposing in `dispose()` guarantees it stays alive
-/// through the dialog's exit animation.
+/// Shared empty-state / list-view logic for the three tabs.
+class _TransactionList extends StatelessWidget {
+  final List<MoneyTransaction> items;
+  final String emptyText;
+
+  const _TransactionList({required this.items, required this.emptyText});
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            emptyText,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.grey),
+          ),
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      itemCount: items.length,
+      itemBuilder: (context, i) {
+        final t = items[i];
+        return TransactionTile(key: ValueKey(t.id), transaction: t);
+      },
+    );
+  }
+}
+
+/// Result bundle so the dialog can return both fields in one shot.
+class _AmountResult {
+  final double amount;
+  final String? source;
+  const _AmountResult(this.amount, this.source);
+}
+
 class _AmountDialog extends StatefulWidget {
   final TransactionType type;
 
@@ -98,23 +176,28 @@ class _AmountDialog extends StatefulWidget {
 }
 
 class _AmountDialogState extends State<_AmountDialog> {
-  final _controller = TextEditingController();
+  final _amountController = TextEditingController();
+  final _sourceController = TextEditingController();
 
   @override
   void dispose() {
-    _controller.dispose();
+    _amountController.dispose();
+    _sourceController.dispose();
     super.dispose();
   }
 
   void _confirm() {
-    final parsed = double.tryParse(_controller.text.trim());
+    final parsed = double.tryParse(_amountController.text.trim());
     if (parsed == null || parsed <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Enter a positive amount')),
       );
       return;
     }
-    Navigator.of(context).pop(parsed);
+    final source = _sourceController.text.trim();
+    Navigator.of(context).pop(
+      _AmountResult(parsed, source.isEmpty ? null : source),
+    );
   }
 
   @override
@@ -122,18 +205,39 @@ class _AmountDialogState extends State<_AmountDialog> {
     final isIncome = widget.type == TransactionType.income;
     final label = isIncome ? 'Add money' : 'Deduct money';
     final color = isIncome ? Colors.green : Colors.red;
+    final sourceLabel = isIncome ? 'Source' : 'Reason';
+    final sourceHint = isIncome
+        ? 'e.g. allowance, gift, stipend'
+        : 'e.g. food, transport, books';
 
     return AlertDialog(
       title: Text(label),
-      content: TextField(
-        controller: _controller,
-        autofocus: true,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: const InputDecoration(
-          prefixText: 'GH₵ ',
-          hintText: '0.00',
-        ),
-        onSubmitted: (_) => _confirm(),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _amountController,
+            autofocus: true,
+            keyboardType:
+            const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              prefixText: 'GH₵ ',
+              hintText: '0.00',
+              labelText: 'Amount',
+            ),
+            onSubmitted: (_) => _confirm(),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _sourceController,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: InputDecoration(
+              labelText: '$sourceLabel (optional)',
+              hintText: sourceHint,
+            ),
+            onSubmitted: (_) => _confirm(),
+          ),
+        ],
       ),
       actions: [
         TextButton(
