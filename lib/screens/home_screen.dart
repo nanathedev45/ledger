@@ -1,12 +1,14 @@
 // lib/screens/home_screen.dart
 //
-// Balance + Add/Deduct buttons + tabbed transaction lists + reset action.
+// Balance + Add/Deduct buttons + tabbed transaction lists + reset FAB.
 
 import 'package:flutter/material.dart';
 
 import '../models/transaction.dart';
+import '../navigation/screen_id.dart';
 import '../state/ledger_state.dart';
 import '../widgets/balance_card.dart';
+import '../widgets/ledger_drawer.dart';
 import '../widgets/transaction_buttons.dart';
 import '../widgets/transaction_tile.dart';
 
@@ -62,17 +64,17 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: LedgerDrawer(current: ScreenId.home, ledger: ledger),
       appBar: AppBar(
         title: const Text('Ledger'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            tooltip: 'Reset',
-            icon: const Icon(Icons.refresh),
-            onPressed: () => _confirmReset(context),
-          ),
-        ],
+      ),
+      // Reset lives in a FAB (bottom-right by default).
+      floatingActionButton: FloatingActionButton(
+        tooltip: 'Reset',
+        onPressed: () => _confirmReset(context),
+        child: const Icon(Icons.refresh),
       ),
       body: AnimatedBuilder(
         animation: ledger,
@@ -112,9 +114,19 @@ class HomeScreen extends StatelessWidget {
                 Expanded(
                   child: TabBarView(
                     children: [
-                      _TransactionList(items: all, emptyText: 'No transactions yet.\nTap Income or Expenditure to begin.'),
-                      _TransactionList(items: income, emptyText: 'No additions yet.'),
-                      _TransactionList(items: expense, emptyText: 'No deductions yet.'),
+                      _TransactionList(
+                        items: all,
+                        emptyText:
+                        'No transactions yet.\nTap Income or Expenditure to begin.',
+                      ),
+                      _TransactionList(
+                        items: income,
+                        emptyText: 'No additions yet.',
+                      ),
+                      _TransactionList(
+                        items: expense,
+                        emptyText: 'No deductions yet.',
+                      ),
                     ],
                   ),
                 ),
