@@ -1,6 +1,6 @@
 // lib/state/ledger_state.dart
 //
-// Single source of truth for the app's transaction list and derived balance.
+// Single source of truth for transactions + derived balance.
 
 import 'package:flutter/foundation.dart';
 
@@ -12,8 +12,10 @@ class LedgerState extends ChangeNotifier {
   List<MoneyTransaction> get transactions =>
       List.unmodifiable(_transactions);
 
-  double get balance =>
-      _transactions.fold(0.0, (sum, t) => sum + (t.isIncome ? t.amount : -t.amount));
+  double get balance => _transactions.fold(
+    0.0,
+        (sum, t) => sum + (t.isIncome ? t.amount : -t.amount),
+  );
 
   void addTransaction(
       TransactionType type,
