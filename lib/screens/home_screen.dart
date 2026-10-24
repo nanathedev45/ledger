@@ -130,7 +130,7 @@ class HomeScreen extends StatelessWidget {
                       _TransactionList(
                         items: all,
                         emptyText:
-                        'No transactions yet.\nTap Income or Expenditure to begin.',
+                        'No transactions yet.\nTap Add or Deduct to begin.',
                       ),
                       _TransactionList(
                         items: income,
