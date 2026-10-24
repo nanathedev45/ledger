@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../navigation/screen_id.dart';
 import '../reports/reports.dart';
+import '../reports/savings.dart';
+import '../state/budget_state.dart';
 import '../state/ledger_state.dart';
 import '../utils/currency_format.dart';
 import '../widgets/ledger_drawer.dart';
@@ -11,9 +13,15 @@ import '../widgets/simple_bar_chart.dart';
 
 class MonthlyReportScreen extends StatefulWidget {
   final LedgerState ledger;
+  final BudgetState budget;
+  final SavingsGoal savings;
 
-  const MonthlyReportScreen({Key? key, required this.ledger})
-      : super(key: key);
+  const MonthlyReportScreen({
+    Key? key,
+    required this.ledger,
+    required this.budget,
+    required this.savings,
+  }) : super(key: key);
 
   @override
   State<MonthlyReportScreen> createState() => _MonthlyReportScreenState();
@@ -28,6 +36,8 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
       drawer: LedgerDrawer(
         current: ScreenId.monthlyReport,
         ledger: widget.ledger,
+        budget: widget.budget,
+        savings: widget.savings,
       ),
       appBar: AppBar(
         title: const Text('Monthly Report'),
@@ -70,7 +80,7 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
               ),
               const SizedBox(height: 24),
               Text(
-                'Net activity — $_titleForScope().toLowerCase()',
+                'Net activity — ${_titleForScope().toLowerCase()}',
                 style: const TextStyle(fontSize: 14, color: Colors.grey),
               ),
               const SizedBox(height: 8),
@@ -99,7 +109,8 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
         ChoiceChip(
           label: const Text('Weekdays'),
           selected: _scope == ReportScope.weekdaysOnly,
-          onSelected: (_) => setState(() => _scope = ReportScope.weekdaysOnly),
+          onSelected: (_) =>
+              setState(() => _scope = ReportScope.weekdaysOnly),
         ),
         ChoiceChip(
           label: const Text('Weekends'),
@@ -144,9 +155,10 @@ class _SummaryCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title,
-                style:
-                const TextStyle(fontSize: 16, color: Colors.grey)),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
+            ),
             const SizedBox(height: 12),
             _row('Income', income, Colors.green),
             _row('Expense', expense, Colors.red),

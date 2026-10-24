@@ -1,11 +1,14 @@
 // lib/screens/home_screen.dart
 //
 // Balance + Add/Deduct buttons + tabbed transaction lists + reset FAB.
+// Drawer navigation added. Budget & savings passed through for the drawer.
 
 import 'package:flutter/material.dart';
 
 import '../models/transaction.dart';
 import '../navigation/screen_id.dart';
+import '../reports/savings.dart';
+import '../state/budget_state.dart';
 import '../state/ledger_state.dart';
 import '../widgets/balance_card.dart';
 import '../widgets/ledger_drawer.dart';
@@ -14,8 +17,15 @@ import '../widgets/transaction_tile.dart';
 
 class HomeScreen extends StatelessWidget {
   final LedgerState ledger;
+  final BudgetState budget;
+  final SavingsGoal savings;
 
-  const HomeScreen({Key? key, required this.ledger}) : super(key: key);
+  const HomeScreen({
+    Key? key,
+    required this.ledger,
+    required this.budget,
+    required this.savings,
+  }) : super(key: key);
 
   Future<void> _promptAmount(
       BuildContext context,
@@ -64,13 +74,17 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: LedgerDrawer(current: ScreenId.home, ledger: ledger),
+      drawer: LedgerDrawer(
+        current: ScreenId.home,
+        ledger: ledger,
+        budget: budget,
+        savings: savings,
+      ),
       appBar: AppBar(
         title: const Text('Ledger'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
       ),
-      // Reset lives in a FAB (bottom-right by default).
       floatingActionButton: FloatingActionButton(
         tooltip: 'Reset',
         onPressed: () => _confirmReset(context),
@@ -79,7 +93,6 @@ class HomeScreen extends StatelessWidget {
       body: AnimatedBuilder(
         animation: ledger,
         builder: (context, _) {
-          // Derive three filtered views of the same list — newest first.
           final all = ledger.transactions.reversed.toList(growable: false);
           final income =
           all.where((t) => t.isIncome).toList(growable: false);
@@ -139,7 +152,6 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-/// Shared empty-state / list-view logic for the three tabs.
 class _TransactionList extends StatelessWidget {
   final List<MoneyTransaction> items;
   final String emptyText;
@@ -171,7 +183,6 @@ class _TransactionList extends StatelessWidget {
   }
 }
 
-/// Result bundle so the dialog can return both fields in one shot.
 class _AmountResult {
   final double amount;
   final String? source;

@@ -90,6 +90,21 @@ class MonthlyReport {
   double get net => totalIncome - totalExpense;
 }
 
+/// Per-category totals for a date range.
+class CategoryTotal {
+  final String? categoryId; // null = uncategorized
+  final double income;
+  final double expense;
+
+  const CategoryTotal({
+    required this.categoryId,
+    required this.income,
+    required this.expense,
+  });
+
+  double get net => income - expense;
+}
+
 // ── helpers ─────────────────────────────────────────────────────────────
 
 bool _sameDay(DateTime a, DateTime b) =>
@@ -97,8 +112,8 @@ bool _sameDay(DateTime a, DateTime b) =>
 
 DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
-bool _isWeekend(DateTime d) => d.weekday == DateTime.saturday ||
-    d.weekday == DateTime.sunday;
+bool _isWeekend(DateTime d) =>
+    d.weekday == DateTime.saturday || d.weekday == DateTime.sunday;
 
 bool _matchesScope(DateTime d, ReportScope scope) {
   switch (scope) {
@@ -174,7 +189,6 @@ MonthlyReport getMonthlyReport(
     int month, {
       ReportScope scope = ReportScope.all,
     }) {
-  // Last day of month via Dart's month-overflow normalization.
   final daysInMonth = DateTime(year, month + 1, 0).day;
   final days = <DayBucket>[];
   var totalIncome = 0.0;
@@ -198,4 +212,53 @@ MonthlyReport getMonthlyReport(
     totalExpense: totalExpense,
     days: days,
   );
+}
+
+/// Breakdown by category for the inclusive date range [from, to].
+/// Sorted: income-positive buckets first (by income desc), then
+/// expense-only buckets (by expense desc). Uncategorized (null) buckets
+/// sort last within each group.
+List<CategoryTotal> getCategoryBreakdown(
+    List<MoneyTransaction> transactions,
+    DateTime from,
+    DateTime to,
+    ) {
+  final start = DateTime(from.year, from.month, from.day);
+  final end = DateTime(to.year, to.month, to.day, 23, 59, 59);
+
+  final incomeBy = <String?, double>{};
+  final expenseBy = <String?, double>{};
+
+  for (final t in transactions) {
+    if (t.dateTime.isBefore(start) || t.dateTime.isAfter(end)) continue;
+    if (t.isIncome) {
+      incomeBy[t.categoryId] = (incomeBy[t.categoryId] ?? 0.0) + t.amount;
+    } else {
+      expenseBy[t.categoryId] = (expenseBy[t.categoryId] ?? 0.0) + t.amount;
+    }
+  }
+
+  final ids = <String?>{...incomeBy.keys, ...expenseBy.keys};
+  final result = ids
+      .map((id) => CategoryTotal(
+    categoryId: id,
+    income: incomeBy[id] ?? 0.0,
+    expense: expenseBy[id] ?? 0.0,
+  ))
+      .toList();
+
+  result.sort((a, b) {
+    final ga = a.income > 0 ? 0 : 1;
+    final gb = b.income > 0 ? 0 : 1;
+    if (ga != gb) return ga.compareTo(gb);
+
+    final ua = a.categoryId == null ? 1 : 0;
+    final ub = b.categoryId == null ? 1 : 0;
+    if (ua != ub) return ua.compareTo(ub);
+
+    if (ga == 0) return b.income.compareTo(a.income);
+    return b.expense.compareTo(a.expense);
+  });
+
+  return result;
 }
