@@ -1,6 +1,6 @@
 # Ledger
 
-A personal finance tracker for Android and iOS, built with Flutter. Track daily income and expenses, set category budgets, log savings contributions, and view reports with charts — plus a rule-based financial profile that classifies your spending habits and gives tailored advice.
+A personal finance tracker for Android, iOS, desktop, and web, built with Flutter.
 
 Built as a learning project (personal use) and portfolio piece. Zero third-party UI packages — everything renders with the Flutter SDK.
 
@@ -56,12 +56,10 @@ Built as a learning project (personal use) and portfolio piece. Zero third-party
 
 ### Working on device
 - All features listed above
-- Reports, budget, savings, and profile persist **in memory** for the session
+- Transactions, budgets, and savings persist locally in SQLite across restarts
 
-### Planned (deferred until environment allows)
-- **Persistence** — transactions, budgets, savings, and PIN survive app restart. Requires shared_preferences, which needs CocoaPods on iOS (blocked by network/Big Sur) and Gradle on Android (deferred to an updated build machine).
-- **PIN lock gate** — setup on first launch, unlock on subsequent opens. Needs crypto (pure Dart, works) + shared_preferences (blocked with persistence).
-- **Category tagging on transactions** — the model field exists (categoryId), the picker in the add/deduct dialog is planned. Currently all transactions are Uncategorized, so budget rows read GH₵ 0.00 spent until this lands.
+### Planned
+- **PIN lock gate** — setup on first launch and unlock on later opens; needs secure local storage for the PIN verifier.
 - **Bottom navigation** — deferred; drawer covers navigation for now.
 - **Backdating** — date picker in the amount dialog so reports can show historical data.
 
@@ -70,14 +68,14 @@ Built as a learning project (personal use) and portfolio piece. Zero third-party
 ## Tech stack
 
 - **Flutter 3.7.2 / Dart 2.19.2** — a version pinned by the development machine (macOS Big Sur, Xcode 13.2)
-- **No third-party packages** in dependencies: — only Flutter SDK + cupertino_icons
+- Encrypted local SQLite storage uses sqflite, AES-GCM, and the platform secure-storage service
 - Charts are **hand-rolled** (lib/widgets/simple_bar_chart.dart), not a package
 - The "ML" engine is **deterministic rule-based scoring**, not a neural network — chosen for explainability, testability, and the ability to work with zero historical data
 
 ### Deliberate constraints
 
 - **Dart 2.19** — no records, no patterns, no switch expressions. Every file conforms.
-- **Zero native plugins** (until persistence) — sidesteps CocoaPods on iOS and Gradle-heavy first builds on Android.
+- SQLite runs on Android, iOS, macOS, Windows, Linux, and web; desktop uses SQLite FFI and web stores SQLite in IndexedDB via WebAssembly. The included SQLite web worker and WASM assets are required for web builds.
 
 ---
 
@@ -149,8 +147,7 @@ flutter pub get
 ### Run
 
 flutter devices                              # list connected devices
-flutter run -d <device-id>                   # hot reload enabled
-flutter run -d chrome                        # web fallback
+flutter run -d <device-id>                   # Android, iOS, macOS, Windows, Linux, or web
 
 ### Build
 
@@ -177,9 +174,8 @@ Currently hardcoded as **Ghanaian Cedi (GH₵)** in lib/utils/currency_format.da
 
 ## Known limitations
 
-- **No persistence.** Closing the app resets transactions, budgets, savings, and profile. (Planned; blocked on shared_preferences availability on the current development machine.)
-- **No PIN lock.** (Planned; same blocker as persistence for storage.)
-- **No transaction categories yet in the UI.** MoneyTransaction.categoryId exists; the add/deduct dialog doesn't yet offer a picker. All transactions are Uncategorized until the picker ships — meaning Budget rows read GH₵ 0.00 spent until then.
+- **Local, encrypted storage.** AES-GCM protects the SQLite snapshot using a device key held by platform secure storage. The web secure-storage implementation is origin-bound; deploy the web app over HTTPS.
+- **No PIN lock.** (Planned.)
 - **No backdating.** You can only log transactions at "now." Reports for past days therefore show flat bars until backdating is added.
 - **Charts are minimal.** The bar chart shows bars only; labels are dropped below a certain bar width (e.g., the 30-day monthly chart). No line charts, no pie charts.
 
@@ -189,15 +185,13 @@ Currently hardcoded as **Ghanaian Cedi (GH₵)** in lib/utils/currency_format.da
 
 Roadmap items, in suggested order:
 
-1. **Category picker in add/deduct dialog** — makes budget rows show real spent values
-2. **Persistence** — shared_preferences on an environment where it installs (fresh Android toolchain, or an updated Mac)
-3. **PIN lock gate** — setup + unlock screens, hashed storage
-4. **Backdating** — date picker in the amount dialog
-5. **Category breakdown in reports** — getCategoryBreakdown already exists; wire it into the three report screens
-6. **Bottom navigation bar** — promote 3–4 screens; drawer for the rest
-7. **Currency config** — lib/utils/currency_config.dart with symbol, decimal places, locale
-8. **Month axis labels** on the monthly bar chart
-9. **Tests** — more archetype cases, edge cases around month boundaries
+1. **Backdating** — date picker in the amount dialog
+2. **Category breakdown in reports** — wire existing category totals into report screens
+3. **Bottom navigation bar** — promote 3–4 screens; drawer for the rest
+4. **Currency config** — configurable symbol and decimal places
+5. **Month axis labels** on the monthly bar chart
+
+---
 
 ---
 

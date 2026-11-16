@@ -1,20 +1,30 @@
 // lib/state/budget_state.dart
 //
-// Per-category budget limits. In-memory only for now — persistence comes
-// when shared_preferences is available. Same shape as LedgerState will be:
-// call load() at startup, save() on every mutation.
+// Per-category monthly budget limits backed by local SQLite storage.
 
 import 'package:flutter/foundation.dart';
+import '../storage/ledger_database.dart';
 
 class BudgetState extends ChangeNotifier {
+  BudgetState(this._database);
+
+  final LedgerDatabase _database;
   // categoryId -> monthly limit
   final Map<String, double> _limits = {};
+
+  Future<void> load() async {
+    _limits
+      ..clear()
+      ..addAll(await _database.loadBudgets());
+    notifyListeners();
+  }
 
   Map<String, double> get limits => Map.unmodifiable(_limits);
 
   double? limitFor(String categoryId) => _limits[categoryId];
 
-  void setLimit(String categoryId, double amount) {
+  Future<void> setLimit(String categoryId, double amount) async {
+    await _database.saveBudget(categoryId, amount);
     if (amount <= 0) {
       _limits.remove(categoryId);
     } else {
@@ -23,12 +33,13 @@ class BudgetState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void clearLimit(String categoryId) {
+  Future<void> clearLimit(String categoryId) async {
+    await _database.saveBudget(categoryId, 0);
     if (_limits.remove(categoryId) != null) notifyListeners();
   }
 
-  void clearAll() {
-    if (_limits.isEmpty) return;
+  Future<void> clearAll() async {
+    await _database.clearBudgets();
     _limits.clear();
     notifyListeners();
   }

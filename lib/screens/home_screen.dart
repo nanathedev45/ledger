@@ -5,6 +5,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../models/category.dart';
 import '../models/transaction.dart';
 import '../navigation/screen_id.dart';
 import '../reports/savings.dart';
@@ -28,15 +29,16 @@ class HomeScreen extends StatelessWidget {
   }) : super(key: key);
 
   Future<void> _promptAmount(
-      BuildContext context,
-      TransactionType type,
-      ) async {
+    BuildContext context,
+    TransactionType type,
+  ) async {
     final result = await showDialog<_AmountResult>(
       context: context,
       builder: (_) => _AmountDialog(type: type),
     );
     if (result != null) {
-      ledger.addTransaction(type, result.amount, source: result.source);
+      await ledger.addTransaction(type, result.amount,
+          source: result.source, categoryId: result.categoryId);
     }
   }
 
@@ -48,7 +50,7 @@ class HomeScreen extends StatelessWidget {
           title: const Text('Reset everything?'),
           content: const Text(
             'This will delete all transactions and set the balance to zero. '
-                'This cannot be undone.',
+            'This cannot be undone.',
           ),
           actions: [
             TextButton(
@@ -67,7 +69,11 @@ class HomeScreen extends StatelessWidget {
       },
     );
     if (ok == true) {
-      ledger.clearAll();
+      await Future.wait([
+        ledger.clearAll(),
+        budget.clearAll(),
+        savings.clearAll(),
+      ]);
     }
   }
 
@@ -94,10 +100,8 @@ class HomeScreen extends StatelessWidget {
         animation: ledger,
         builder: (context, _) {
           final all = ledger.transactions.reversed.toList(growable: false);
-          final income =
-          all.where((t) => t.isIncome).toList(growable: false);
-          final expense =
-          all.where((t) => !t.isIncome).toList(growable: false);
+          final income = all.where((t) => t.isIncome).toList(growable: false);
+          final expense = all.where((t) => !t.isIncome).toList(growable: false);
 
           return DefaultTabController(
             length: 3,
@@ -110,8 +114,7 @@ class HomeScreen extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: TransactionButtons(
-                    onAdd: () =>
-                        _promptAmount(context, TransactionType.income),
+                    onAdd: () => _promptAmount(context, TransactionType.income),
                     onDeduct: () =>
                         _promptAmount(context, TransactionType.expense),
                   ),
@@ -130,7 +133,7 @@ class HomeScreen extends StatelessWidget {
                       _TransactionList(
                         items: all,
                         emptyText:
-                        'No transactions yet.\nTap Add or Deduct to begin.',
+                            'No transactions yet.\nTap Add or Deduct to begin.',
                       ),
                       _TransactionList(
                         items: income,
@@ -186,7 +189,8 @@ class _TransactionList extends StatelessWidget {
 class _AmountResult {
   final double amount;
   final String? source;
-  const _AmountResult(this.amount, this.source);
+  final String categoryId;
+  const _AmountResult(this.amount, this.source, this.categoryId);
 }
 
 class _AmountDialog extends StatefulWidget {
@@ -201,6 +205,15 @@ class _AmountDialog extends StatefulWidget {
 class _AmountDialogState extends State<_AmountDialog> {
   final _amountController = TextEditingController();
   final _sourceController = TextEditingController();
+  late String _categoryId;
+
+  @override
+  void initState() {
+    super.initState();
+    _categoryId = Categories.presetsFor(
+      isIncome: widget.type == TransactionType.income,
+    ).first.id;
+  }
 
   @override
   void dispose() {
@@ -219,7 +232,7 @@ class _AmountDialogState extends State<_AmountDialog> {
     }
     final source = _sourceController.text.trim();
     Navigator.of(context).pop(
-      _AmountResult(parsed, source.isEmpty ? null : source),
+      _AmountResult(parsed, source.isEmpty ? null : source, _categoryId),
     );
   }
 
@@ -241,14 +254,27 @@ class _AmountDialogState extends State<_AmountDialog> {
           TextField(
             controller: _amountController,
             autofocus: true,
-            keyboardType:
-            const TextInputType.numberWithOptions(decimal: true),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(
               prefixText: 'GH₵ ',
               hintText: '0.00',
               labelText: 'Amount',
             ),
             onSubmitted: (_) => _confirm(),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: _categoryId,
+            decoration: const InputDecoration(labelText: 'Category'),
+            items: Categories.presetsFor(isIncome: isIncome)
+                .map((category) => DropdownMenuItem<String>(
+                      value: category.id,
+                      child: Text(category.label),
+                    ))
+                .toList(),
+            onChanged: (value) {
+              if (value != null) setState(() => _categoryId = value);
+            },
           ),
           const SizedBox(height: 12),
           TextField(

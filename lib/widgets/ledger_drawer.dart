@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../navigation/screen_id.dart';
 import '../reports/savings.dart';
 import '../screens/budget_screen.dart';
+import '../screens/backup_screen.dart';
 import '../screens/daily_report_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/monthly_report_screen.dart';
@@ -131,6 +132,21 @@ class LedgerDrawer extends StatelessWidget {
                 savings: savings,
               ),
             ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.lock_outline),
+              title: const Text('Data backup'),
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => BackupScreen(
+                    ledger: ledger,
+                    budget: budget,
+                    savings: savings,
+                  ),
+                ));
+              },
+            ),
           ],
         ),
       ),
@@ -138,12 +154,12 @@ class LedgerDrawer extends StatelessWidget {
   }
 
   Widget _item(
-      BuildContext context, {
-        required IconData icon,
-        required String label,
-        required ScreenId target,
-        required Widget screen,
-      }) {
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required ScreenId target,
+    required Widget screen,
+  }) {
     final selected = target == current;
     return ListTile(
       leading: Icon(icon),

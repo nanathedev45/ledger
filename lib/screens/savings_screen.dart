@@ -84,10 +84,10 @@ class _SavingsScreenState extends State<SavingsScreen> {
                     .toList()
                     .reversed
                     .map((e) => _ContributionTile(
-                  contribution: e.value,
-                  onDelete: () =>
-                      widget.savings.removeContribution(e.key),
-                )),
+                          contribution: e.value,
+                          onDelete: () =>
+                              widget.savings.removeContribution(e.key),
+                        )),
             ],
           );
         },
@@ -108,8 +108,7 @@ class _SavingsScreenState extends State<SavingsScreen> {
         title: const Text('Monthly savings target'),
         content: TextField(
           controller: controller,
-          keyboardType:
-          const TextInputType.numberWithOptions(decimal: true),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
           autofocus: true,
           decoration: const InputDecoration(
             labelText: 'Target',
@@ -145,7 +144,7 @@ class _SavingsScreenState extends State<SavingsScreen> {
       return;
     }
 
-    widget.savings.setMonthlyTarget(parsed);
+    await widget.savings.setMonthlyTarget(parsed);
   }
 
   Future<void> _showAddContributionDialog() async {
@@ -162,7 +161,7 @@ class _SavingsScreenState extends State<SavingsScreen> {
             TextField(
               controller: amountCtrl,
               keyboardType:
-              const TextInputType.numberWithOptions(decimal: true),
+                  const TextInputType.numberWithOptions(decimal: true),
               autofocus: true,
               decoration: const InputDecoration(
                 labelText: 'Amount',
@@ -212,7 +211,7 @@ class _SavingsScreenState extends State<SavingsScreen> {
       return;
     }
 
-    widget.savings.addContribution(
+    await widget.savings.addContribution(
       parsed,
       note: note.isEmpty ? null : note,
     );
@@ -254,8 +253,8 @@ class _ProgressCard extends StatelessWidget {
                       value: progress,
                       strokeWidth: 12,
                       backgroundColor: Colors.blue.withOpacity(0.12),
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                          Colors.blue),
+                      valueColor:
+                          const AlwaysStoppedAnimation<Color>(Colors.blue),
                     ),
                   ),
                   Column(
@@ -293,12 +292,9 @@ class _ProgressCard extends StatelessWidget {
                     : 'Target reached',
                 style: TextStyle(
                   fontSize: 12,
-                  color: remaining > 0
-                      ? Colors.grey
-                      : Colors.green.shade700,
-                  fontWeight: remaining > 0
-                      ? FontWeight.normal
-                      : FontWeight.w600,
+                  color: remaining > 0 ? Colors.grey : Colors.green.shade700,
+                  fontWeight:
+                      remaining > 0 ? FontWeight.normal : FontWeight.w600,
                 ),
               ),
             ] else

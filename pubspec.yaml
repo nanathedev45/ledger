@@ -1,7 +1,7 @@
 name: ledger
 description: A personal finance tracker.
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.1.0+2
 
 environment:
   sdk: '>=2.19.2 <3.0.0'
@@ -10,11 +10,24 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.2
+  sqflite: 2.2.8+4
+  path: ^1.9.1
+  path_provider: 2.0.15
+  sqflite_common_ffi: 2.2.5
+  sqflite_common_ffi_web: 0.3.6
+  flutter_secure_storage: 9.2.4
+  cryptography: 2.5.0
+  synchronized: 3.1.0
+  file_selector: 1.0.1
+  share_plus: 7.2.2
+  cross_file: 0.3.3+8
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^2.0.0
+  # Keep sqflite_common_ffi_web's setup CLI compatible with Dart 2.19.
+  dev_test: 0.15.7+2
 
 flutter:
   uses-material-design: true

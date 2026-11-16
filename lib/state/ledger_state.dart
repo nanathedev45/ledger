@@ -5,39 +5,49 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/transaction.dart';
+import '../storage/ledger_database.dart';
 
 class LedgerState extends ChangeNotifier {
+  LedgerState(this._database);
+
+  final LedgerDatabase _database;
   final List<MoneyTransaction> _transactions = [];
 
-  List<MoneyTransaction> get transactions =>
-      List.unmodifiable(_transactions);
-
-  double get balance => _transactions.fold(
-    0.0,
-        (sum, t) => sum + (t.isIncome ? t.amount : -t.amount),
-  );
-
-  void addTransaction(
-      TransactionType type,
-      double amount, {
-        String? source,
-      }) {
-    _transactions.add(
-      MoneyTransaction(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        type: type,
-        amount: amount,
-        dateTime: DateTime.now(),
-        source: (source == null || source.trim().isEmpty)
-            ? null
-            : source.trim(),
-      ),
-    );
+  Future<void> load() async {
+    _transactions
+      ..clear()
+      ..addAll(await _database.loadTransactions());
     notifyListeners();
   }
 
-  void clearAll() {
-    if (_transactions.isEmpty) return;
+  List<MoneyTransaction> get transactions => List.unmodifiable(_transactions);
+
+  double get balance => _transactions.fold(
+        0.0,
+        (sum, t) => sum + (t.isIncome ? t.amount : -t.amount),
+      );
+
+  Future<void> addTransaction(
+    TransactionType type,
+    double amount, {
+    String? source,
+    String? categoryId,
+  }) async {
+    final transaction = MoneyTransaction(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      type: type,
+      amount: amount,
+      dateTime: DateTime.now(),
+      source: (source == null || source.trim().isEmpty) ? null : source.trim(),
+      categoryId: categoryId,
+    );
+    await _database.saveTransaction(transaction);
+    _transactions.add(transaction);
+    notifyListeners();
+  }
+
+  Future<void> clearAll() async {
+    await _database.clearTransactions();
     _transactions.clear();
     notifyListeners();
   }

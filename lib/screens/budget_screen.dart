@@ -79,8 +79,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
           }
 
           final entries = limits.entries.toList()
-            ..sort((a, b) => Categories.labelOf(a.key)
-                .compareTo(Categories.labelOf(b.key)));
+            ..sort((a, b) =>
+                Categories.labelOf(a.key).compareTo(Categories.labelOf(b.key)));
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -106,9 +106,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
   Future<void> _showAddDialog() async {
     final used = widget.budget.limits.keys.toSet();
-    final available = Categories.expensePresets
-        .where((c) => !used.contains(c.id))
-        .toList();
+    final available =
+        Categories.expensePresets.where((c) => !used.contains(c.id)).toList();
 
     if (available.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -133,21 +132,20 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   value: selected,
                   items: available
                       .map((c) => DropdownMenuItem(
-                    value: c,
-                    child: Text(c.label),
-                  ))
+                            value: c,
+                            child: Text(c.label),
+                          ))
                       .toList(),
                   onChanged: (c) {
                     if (c != null) setLocal(() => selected = c);
                   },
-                  decoration:
-                  const InputDecoration(labelText: 'Category'),
+                  decoration: const InputDecoration(labelText: 'Category'),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: controller,
-                  keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   autofocus: true,
                   decoration: const InputDecoration(
                     labelText: 'Monthly limit',
@@ -167,8 +165,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   final parsed = double.tryParse(controller.text.trim());
                   if (parsed == null || parsed <= 0) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Enter a positive amount')),
+                      const SnackBar(content: Text('Enter a positive amount')),
                     );
                     return;
                   }
@@ -185,7 +182,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
     controller.dispose();
 
     if (result != null) {
-      widget.budget.setLimit(result.key, result.value);
+      await widget.budget.setLimit(result.key, result.value);
     }
   }
 
@@ -200,8 +197,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
         title: Text('Edit ${Categories.labelOf(categoryId)} budget'),
         content: TextField(
           controller: controller,
-          keyboardType:
-          const TextInputType.numberWithOptions(decimal: true),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: const InputDecoration(
             labelText: 'Monthly limit',
             prefixText: 'GH₵ ',
@@ -210,8 +206,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop('delete'),
-            child: const Text('Delete',
-                style: TextStyle(color: Colors.red)),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop('cancel'),
@@ -231,7 +226,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
     }
 
     if (action == 'delete') {
-      widget.budget.clearLimit(categoryId);
+      await widget.budget.clearLimit(categoryId);
     } else if (action == 'save') {
       final parsed = double.tryParse(controller.text.trim());
       if (parsed == null || parsed <= 0) {
@@ -239,7 +234,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
           const SnackBar(content: Text('Enter a positive amount')),
         );
       } else {
-        widget.budget.setLimit(categoryId, parsed);
+        await widget.budget.setLimit(categoryId, parsed);
       }
     }
 
@@ -267,8 +262,8 @@ class _BudgetRow extends StatelessWidget {
     final color = ratio >= 1.0
         ? Colors.red
         : ratio >= 0.75
-        ? Colors.amber.shade800
-        : Colors.green;
+            ? Colors.amber.shade800
+            : Colors.green;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
